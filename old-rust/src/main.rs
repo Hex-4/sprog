@@ -10,6 +10,9 @@
 #![no_std]
 #![no_main]
 
+use mipidsi::{models::ST7735s, Builder, Display, Orientation};
+
+use display_interface_spi::SPIInterfaceNoCS;
 // The macro for our start-up function
 use rp_pico::{
     entry,
@@ -27,6 +30,7 @@ use rp_pico::hal::prelude::*;
 
 // Some traits we need
 //use cortex_m::prelude::*;
+use embedded_canvas::CCanvasAt;
 use embedded_graphics::{
     mock_display::MockDisplay,
     mono_font::{MonoTextStyle, ascii::FONT_6X10},
@@ -42,8 +46,6 @@ use embedded_time::fixed_point::FixedPoint;
 use embedded_time::rate::Extensions;
 use rp_pico::hal::clocks::Clock;
 use rp_pico::hal::fugit::RateExtU32;
-use st7735_lcd;
-use st7735_lcd::Orientation;
 
 // A shorter alias for the Peripheral Access Crate, which provides low-level
 // register access
@@ -68,10 +70,6 @@ struct Input {
     k: Pin<Gpio14, FunctionSio<SioInput>, PullUp>,
     l: Pin<Gpio15, FunctionSio<SioInput>, PullUp>,
 }
-
-static mut FRAMEBUFFER: [u16; 160 * 128] = [0; 160 * 128];
-
-
 
 /// Entry point to our bare-metal application.
 ///
@@ -173,18 +171,30 @@ fn main() -> ! {
     let spi = spi.init(
         &mut pac.RESETS,
         clocks.peripheral_clock.freq(),
-        RateExtU32::Hz(64_000_000),
+        RateExtU32::Hz(128_000_000),
         &embedded_hal::spi::MODE_0,
     );
 
-    let mut disp = st7735_lcd::ST7735::new(spi, dc, rst, true, false, 160, 128);
+    // Create a DisplayInterface from SPI and DC pin, with no manual CS control
+    let di = SPIInterfaceNoCS::new(spi, dc);
 
-    disp.init(&mut delay).unwrap();
-    disp.set_orientation(&Orientation::Landscape).unwrap();
+    let mut disp = Builder::st7735s(di).with_display_size(180, 128).with_framebuffer_size(180, 128).with_invert_colors(mipidsi::ColorInversion::Normal).with_color_order(mipidsi::ColorOrder::Rgb).init(&mut delay, Some(rst)).unwrap();
+
+
+    disp.set_orientation(Orientation::Landscape(true)).unwrap();
     disp.clear(Rgb565::BLACK).unwrap();
 
-    let mut yoffset = 10;
-    let thin_stroke = PrimitiveStyle::with_stroke(Rgb565::BLUE, 1);
+    let style = PrimitiveStyleBuilder::new()
+        .stroke_color(Rgb565::RED)
+        .stroke_width(2)
+        .fill_color(Rgb565::GREEN)
+        .build();
+
+    let blank: PrimitiveStyle<Rgb565> = PrimitiveStyleBuilder::new()
+        .fill_color(Rgb565::BLACK)
+        .build();
+
+    let mut player_c: CCanvasAt<Rgb565, 160, 128> = CCanvasAt::new(Point::new(10, 10));
 
     // Set the LED to be an output
     let mut led_pin = pins.b_power_save.into_push_pull_output();
@@ -200,17 +210,37 @@ fn main() -> ! {
         l: pins.gpio15.into_pull_up_input(),
     };
 
-    let mut ran = false;
+    let mut x = 16;
+    let mut y = 16;
 
     led_pin.set_high().unwrap();
 
+    player_c.draw(&mut disp).ok();
+
     loop {
-        if !ran {
-            if input.w.is_low().unwrap() {
-                ran = true
-            }
+        Rectangle::new(Point::new(0, 0), Size::new(32, 32))
+            .into_styled(blank)
+            .translate_mut(Point::new(x, y))
+            .draw(&mut player_c)
+            .ok();
+
+        // Basic Movement
+        if input.s.is_low().unwrap() {
+            y += 2
+        } else if input.d.is_low().unwrap() {
+            x += 2
+        } else if input.w.is_low().unwrap() {
+            y -= 2
+        } else if input.a.is_low().unwrap() {
+            x -= 2
         }
 
+        Rectangle::new(Point::new(0, 0), Size::new(32, 32))
+            .into_styled(style)
+            .translate_mut(Point::new(x, y))
+            .draw(&mut player_c)
+            .ok();
+        player_c.draw(&mut disp).ok();
     }
 }
 
