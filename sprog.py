@@ -93,9 +93,9 @@ class SprogDisplay:
         self.bitmap = displayio.Bitmap(160, 128, 24)  # can use all 24 colors
         self.sprite = displayio.TileGrid(self.bitmap, pixel_shader=palette)
         
-        splash = displayio.Group()
-        splash.append(self.sprite)
-        screen.root_group = splash
+        self.splash = displayio.Group()
+        self.splash.append(self.sprite)
+        screen.root_group = self.splash
         self.screen = screen
         
     def cls(self, color=0):
@@ -106,6 +106,17 @@ class SprogDisplay:
         """set pixel"""
         if 0 <= x < 160 and 0 <= y < 128:
             self.bitmap[math.floor(x), math.floor(y)] = color & 15
+            
+    def addText(self, x, y, text):
+        """Called when adding text"""
+        l = label.Label(terminalio.FONT, text=text)
+        l.x = x
+        l.y = y
+        self.splash.append(l)
+        return l
+    def clearText(self, label):
+        """Called when deleting text"""
+        self.splash.remove(label)
             
 class SprogInput:
     def __init__(self) -> None:
