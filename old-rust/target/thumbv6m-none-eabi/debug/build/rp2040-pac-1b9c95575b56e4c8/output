@@ -1,0 +1,3 @@
+cargo:rustc-link-search=/home/hexatron/code/sprog/target/thumbv6m-none-eabi/debug/build/rp2040-pac-1b9c95575b56e4c8/out
+cargo:rerun-if-changed=device.x
+cargo:rerun-if-changed=build.rs

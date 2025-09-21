@@ -6,15 +6,26 @@ This test will initialize the display using displayio and draw a solid green
 background, a smaller purple rectangle, and some yellow text.
 """
 
+
 import board
 import displayio
 import terminalio
 import busio
+import digitalio
+import math
 from adafruit_display_text import label
 from fourwire import FourWire
 import time
 
 from adafruit_st7735r import ST7735R
+
+def normalize(vector):
+    if vector[0] + vector[1] > 0:
+        magnitude = math.sqrt(sum(x**2 for x in vector))
+        return [x / magnitude for x in vector]
+    else:
+        return vector
+
 
 
 def create_cheerful24_palette():
@@ -23,7 +34,7 @@ def create_cheerful24_palette():
     # Cheerful-24 colors (RGB values)
     colors = [
         (15, 15, 18),      # 0 - dark black
-        (80, 83, 89),      # 1 - dark gray  
+        (80, 83, 89),      # 1 - dark gray 
         (182, 191, 188),   # 2 - light gray
         (242, 251, 255),   # 3 - white
         (94, 231, 255),    # 4 - cyan
@@ -54,20 +65,24 @@ def create_cheerful24_palette():
     
     return palette
 
+class Sprite:
+    def __init__(self, img: list[str]) -> None:
+        self.img = img
+
 def SprigScreen():
     # Release any resources currently in use for the displays
     displayio.release_displays()
 
-    spi = busio.SPI(board.GP18, board.GP19)
+    spi = busio.SPI(board.GP18, board.GP19) # pyright: ignore[reportAttributeAccessIssue]
 
     if spi.try_lock():
         spi.configure(baudrate=64000000)
         spi.unlock()
 
-    tft_cs = board.GP20
-    tft_dc = board.GP22
+    tft_cs = board.GP20 # pyright: ignore[reportAttributeAccessIssue]
+    tft_dc = board.GP22 # pyright: ignore[reportAttributeAccessIssue]
 
-    display_bus = FourWire(spi, command=tft_dc, chip_select=tft_cs, reset=board.GP26)
+    display_bus = FourWire(spi, command=tft_dc, chip_select=tft_cs, reset=board.GP26) # pyright: ignore[reportAttributeAccessIssue]
 
     return ST7735R(display_bus, width=160, height=128, rotation=270, bgr=True)
 
@@ -90,13 +105,100 @@ class SprogDisplay:
     def pset(self, x, y, color):
         """set pixel"""
         if 0 <= x < 160 and 0 <= y < 128:
-            self.bitmap[x, y] = color & 15
+            self.bitmap[math.floor(x), math.floor(y)] = color & 15
             
+class SprogInput:
+    def __init__(self) -> None:
+        pins = {
+            "w": board.GP5, # pyright: ignore[reportAttributeAccessIssue]
+            "a": board.GP6, # pyright: ignore[reportAttributeAccessIssue]
+            "s": board.GP7, # pyright: ignore[reportAttributeAccessIssue]
+            "d": board.GP8, # pyright: ignore[reportAttributeAccessIssue]
+            
+            "i": board.GP12, # pyright: ignore[reportAttributeAccessIssue]
+            "j": board.GP13, # pyright: ignore[reportAttributeAccessIssue]
+            "k": board.GP14, # pyright: ignore[reportAttributeAccessIssue]
+            "l": board.GP15  # pyright: ignore[reportAttributeAccessIssue]
+        }
+        
+        self.buttons = {
+            "w": 0,
+            "a": 0,
+            "s": 0,
+            "d": 0,
+            
+            "i": 0,
+            "j": 0,
+            "k": 0,
+            "l": 0,
+        }
+        
+        self.ios: dict[str, digitalio.DigitalInOut] = {}
+        
+        for name, pin in pins.items():
+            btn = digitalio.DigitalInOut(pin)
+            btn.direction = digitalio.Direction.INPUT
+            btn.pull = digitalio.Pull.UP
+            self.ios[name] = btn
     
-            
+    def poll(self) -> None:
+        for name, io in self.ios.items():
+            if not io.value: # if pressed
+                self.buttons[name] += 1
+            else:
+                self.buttons[name] = 0
+                
+    def btn(self, name: str) -> bool:
+        if self.buttons[name] > 0:
+            return True
+        else:
+            return False
+        
+    def btnp(self, name):
+        if self.buttons[name] == 1:
+            return True
+        else:
+            return False
+        
+    def btna(self):
+        pressed: list[str] = []
+        for btn, frames in self.buttons.items():
+            if frames > 0:
+                pressed.append(btn)
+        return pressed
+        
+    def btnf(self, name):
+        return self.buttons[name]
+    
+    def dir(self, side = "left"):
+        values: dict[str, list[int]] = {}
+        if side == "left":
+            values = {
+                "w": [0, -1],
+                "a": [-1, 0],
+                "s": [0, 1],
+                "d": [1, 0],
+            }
+        elif side == "right":
+            values = {
+                "i": [0, -1],
+                "j": [-1, 0],
+                "k": [0, 1],
+                "l": [1, 0],
+            }
+        vector = [0, 0]
+        for btn in self.btna():
+            if btn in values:
+                vector[0] += values[btn][0]
+                vector[1] += values[btn][1]
+        
+        return normalize(vector)
+
+          
 class Sprog:
     def __init__(self):
         self.display = SprogDisplay(SprigScreen())
+        self.input = SprogInput()
         
         self.running = True
         
@@ -127,6 +229,7 @@ class Sprog:
             frame_start = time.monotonic()
             
             # call user methods
+            self.input.poll()
             self.update()
             self.draw()
             self.display.screen.refresh()
