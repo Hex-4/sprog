@@ -1,6 +1,0 @@
-$ mkdir -p "/home/hexatron/code/sprog/target/thumbv6m-none-eabi/debug/build/az-196b2b82b7251a38/out/try_track_caller"
-$ cd "/home/hexatron/code/sprog/target/thumbv6m-none-eabi/debug/build/az-196b2b82b7251a38/out/try_track_caller"
-$ printf '%s' "// try_tra"... > "/home/hexatron/code/sprog/target/thumbv6m-none-eabi/debug/build/az-196b2b82b7251a38/out/try_track_caller/try_track_caller.rs"
-$ cd "/home/hexatron/code/sprog/target/thumbv6m-none-eabi/debug/build/az-196b2b82b7251a38/out/try_track_caller" && "rustc" "try_track_caller.rs" "--emit=dep-info,metadata" >& /dev/null
-cargo:rustc-cfg=track_caller
-$ rm -r "/home/hexatron/code/sprog/target/thumbv6m-none-eabi/debug/build/az-196b2b82b7251a38/out/try_track_caller"

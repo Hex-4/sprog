@@ -1,1 +1,0 @@
-<ST7735<Spi<Enabled, SPI0, (Pin<Gpio19, FunctionSpi, PullNone>, Pin<Gpio16, FunctionSpi, PullUp>, Pin<Gpio18, FunctionSpi, PullNone>)>, Pin<Gpio22, FunctionSio<SioOutput>, PullDown>, Pin<Gpio26, FunctionSio<SioOutput>, PullDown>> as DrawTarget>::Color == BinaryColor
