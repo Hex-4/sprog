@@ -13,9 +13,10 @@ import terminalio
 import busio
 import digitalio
 import math
-from adafruit_display_text import label
+from adafruit_display_text import bitmap_label
 from fourwire import FourWire
 import time
+import gc
 
 from adafruit_st7735r import ST7735R
 
@@ -97,6 +98,7 @@ class SprogDisplay:
         self.splash.append(self.sprite)
         screen.root_group = self.splash
         self.screen = screen
+        self.texts = []
 
     def cls(self, color=0):
         """clear screen"""
@@ -109,14 +111,20 @@ class SprogDisplay:
 
     def addText(self, x, y, text):
         """Called when adding text"""
-        l = label.Label(terminalio.FONT, text=text)
+        l = bitmap_label.Label(terminalio.FONT, text=text)
         l.x = x
         l.y = y
         self.splash.append(l)
+        self.texts.append(l)
         return l
-    def clearText(self, label):
+    def clearText(self):
         """Called when deleting text"""
-        self.splash.remove(label)
+        for i in self.texts:
+            if i in self.splash:
+                self.splash.remove(i)
+                gc.collect()
+                del i
+                print(str(gc.mem_free())+"        ")
 
 class SprogInput:
     def __init__(self) -> None:
@@ -214,6 +222,8 @@ class Sprog:
         self.running = True
 
         self.frame_count = 0
+        
+        gc.enable()
 
 
 

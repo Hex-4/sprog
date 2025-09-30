@@ -1,4 +1,8 @@
 import sprog
+import gc
+
+gc.collect()
+print(str(gc.mem_free())+"        ")
 
 playerSprite = [
     "......",
@@ -14,6 +18,7 @@ class TestGame(sprog.Sprog):
         self.x, self.y = 0, 0
     def update(self):
         i = self.input
+        d = self.display
 
         dx, dy = i.dir()
         self.x += dx
@@ -22,11 +27,16 @@ class TestGame(sprog.Sprog):
         dx, dy = i.dir("right")
         self.x += dx * 3
         self.y += dy * 3
-        if self.input.btn("i") == True:
-            self.addText(x=1, y=1, text=f"frames: {self.frame_count}")
-            self.addText(x=1, y=8, text=f"x: {dx}")
-            self.addText(x=1, y=-16, text=f"x: {dy}")
-            self.clearText()
+        
+  
+        if i.btn("i") == True:
+            d.clearText()
+            d.addText(x=1, y=5, text=f"frames: {self.frame_count}")
+            d.addText(x=1, y=15, text=f"x: {dx}")
+            d.addText(x=1, y=25, text=f"x: {dy}")
+            gc.collect()
+        else:
+            d.clearText()
 
     def draw(self):
         d = self.display
