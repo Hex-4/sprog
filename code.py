@@ -19,7 +19,7 @@ class TestGame(sprog.Sprog):
     def update(self):
         i = self.input
         d = self.display
-
+        frame_time = 1.0 / 30
         dx, dy = i.dir()
         self.x += dx
         self.y += dy
@@ -27,11 +27,12 @@ class TestGame(sprog.Sprog):
         dx, dy = i.dir("right")
         self.x += dx * 3
         self.y += dy * 3
-        
-  
+
+
         if i.btn("i") == True:
             d.clearText()
-            d.addText(x=1, y=5, text=f"frames: {self.frame_count}")
+            d.addText(x=1, y=5, text=f"frame: {self.frame_count}")
+            d.addText(x=1, y=5, text=f"fps: {self.frame_count - frame_time}")
             d.addText(x=1, y=15, text=f"x: {dx}")
             d.addText(x=1, y=25, text=f"x: {dy}")
             gc.collect()
