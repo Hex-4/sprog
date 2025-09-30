@@ -5,12 +5,10 @@ gc.collect()
 print(str(gc.mem_free())+"        ")
 
 playerSprite = [
-    "......",
-    "......",
-    "......",
-    "......",
-    "......",
-    "......",
+    ".....",
+    ".....",
+    "hh33h",
+    "hh33h",
 ]
 
 class TestGame(sprog.Sprog):
@@ -41,13 +39,8 @@ class TestGame(sprog.Sprog):
 
     def draw(self):
         d = self.display
-
-        d.cls(2)
-        d.cls(3)
-        d.cls(4)
-        d.cls(5)
         d.cls(6)
-        d.pset(self.x, self.y, 14)
+        d.renderBitmap(self.x, self.y, playerSprite)
 
 game = TestGame()
 game.run()

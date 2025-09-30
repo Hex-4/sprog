@@ -1,10 +1,3 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
-"""
-This test will initialize the display using displayio and draw a solid green
-background, a smaller purple rectangle, and some yellow text.
-"""
 
 
 import board
@@ -20,7 +13,12 @@ import gc
 
 from adafruit_st7735r import ST7735R
 
-def normalize(vector):
+def normalize(vector: list[int]):
+    """
+    Turns a vector into a unit vector.
+    
+    :param list vector: The vector (in the form of [0,0]) to normalize.
+    """
     if vector[0] + vector[1] > 0:
         magnitude = math.sqrt(sum(x**2 for x in vector))
         return [x / magnitude for x in vector]
@@ -30,6 +28,9 @@ def normalize(vector):
 
 
 def create_cheerful24_palette():
+    """
+    (for internal use) Creates the Sprog palette for use with displayio.
+    """
     palette = displayio.Palette(24)
 
     # Cheerful-24 colors (RGB values)
@@ -78,7 +79,7 @@ def SprigScreen():
 
     if spi.try_lock():
         spi.configure(baudrate=64000000)
-        spi.unlock()
+        spi.unlock()    
 
     tft_cs = board.GP20 # pyright: ignore[reportAttributeAccessIssue]
     tft_dc = board.GP22 # pyright: ignore[reportAttributeAccessIssue]
@@ -99,6 +100,40 @@ class SprogDisplay:
         screen.root_group = self.splash
         self.screen = screen
         self.texts = []
+        
+        self.colorSymbols = [
+            "0",  # dark black
+            "1",  # dark gray
+            "2",  # light gray
+            "3",  # white
+            "a",  # cyan
+            "b",  # blue
+            "c",  # dark blue
+            "d",  # navy
+            "e",  # dark teal
+            "f",  # green
+            "g",  # bright green
+            "h",  # light green
+            "i",  # light yellow
+            "j",  # yellow
+            "k",  # orange
+            "l",  # red
+            "m",  # dark red
+            "n",  # maroon
+            "o",  # brown
+            "p",  # light brown
+            "q",  # tan
+            "r",  # peach
+            "s",  # pink
+            "t",  # purple
+        ]
+        
+    def renderBitmap(self, x, y, bitmap):
+        """render a bitmap array to the screen (for advanced users)"""
+        for (rowIndex, row) in enumerate(bitmap):
+            for (pixelIndex, pixel) in enumerate(bitmap[rowIndex]):
+                if pixel != ".":
+                    self.pset(pixelIndex + x, rowIndex + y, self.colorSymbols.index(pixel))
 
     def cls(self, color=0):
         """clear screen"""
@@ -106,8 +141,8 @@ class SprogDisplay:
 
     def pset(self, x, y, color):
         """set pixel"""
-        if 0 <= x < 160 and 0 <= y < 128:
-            self.bitmap[math.floor(x), math.floor(y)] = color & 15
+        if 0 <= x < 160 and 0 <= y < 128: # if pixel in bounds
+            self.bitmap[math.floor(x), math.floor(y)] = color & 15 # set in bitmap
 
     def addText(self, x, y, text):
         """Called when adding text"""
