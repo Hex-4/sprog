@@ -16,7 +16,7 @@ from adafruit_st7735r import ST7735R
 def normalize(vector: list[int]):
     """
     Turns a vector into a unit vector.
-    
+
     :param list vector: The vector (in the form of [0,0]) to normalize.
     """
     if vector[0] + vector[1] > 0:
@@ -70,7 +70,9 @@ def create_cheerful24_palette():
 class Sprite:
     def __init__(self, img: list[str]) -> None:
         self.img = img
-
+"""
+(for internal use) This runs also at start and it starts the Sprig screen.
+"""
 def SprigScreen():
     # Release any resources currently in use for the displays
     displayio.release_displays()
@@ -79,7 +81,7 @@ def SprigScreen():
 
     if spi.try_lock():
         spi.configure(baudrate=64000000)
-        spi.unlock()    
+        spi.unlock()
 
     tft_cs = board.GP20 # pyright: ignore[reportAttributeAccessIssue]
     tft_dc = board.GP22 # pyright: ignore[reportAttributeAccessIssue]
@@ -100,7 +102,9 @@ class SprogDisplay:
         screen.root_group = self.splash
         self.screen = screen
         self.texts = []
-        
+        """
+        Creates the Sprog palette for use with sprites.
+        """
         self.colorSymbols = [
             "0",  # dark black
             "1",  # dark gray
@@ -127,7 +131,7 @@ class SprogDisplay:
             "s",  # pink
             "t",  # purple
         ]
-        
+
     def renderBitmap(self, x, y, bitmap):
         """render a bitmap array to the screen (for advanced users)"""
         for (rowIndex, row) in enumerate(bitmap):
@@ -145,7 +149,7 @@ class SprogDisplay:
             self.bitmap[math.floor(x), math.floor(y)] = color & 15 # set in bitmap
 
     def addText(self, x, y, text):
-        """Called when adding text"""
+        """Called when adding text."""
         l = bitmap_label.Label(terminalio.FONT, text=text)
         l.x = x
         l.y = y
@@ -157,15 +161,18 @@ class SprogDisplay:
         for i in self.texts:
             if i in self.splash:
                 self.splash.remove(i)
-                
+
                 del i
                 print(str(gc.mem_free())+"        ")
-        
+
         gc.collect()
-        self.texts.clear()        
-                
+        self.texts.clear()
+
 
 class SprogInput:
+    """
+    (for internal use) This runs at the start for the buttons to work.
+    """
     def __init__(self) -> None:
         pins = {
             "w": board.GP5, # pyright: ignore[reportAttributeAccessIssue]
@@ -227,7 +234,9 @@ class SprogInput:
     """How long is the button holded"""
     def btnf(self, name):
         return self.buttons[name]
-
+    """
+    For selecting what size to use the buttons. Default is left (WASD).
+    """
     def dir(self, side = "left"):
         values: dict[str, list[int]] = {}
         if side == "left":
@@ -261,7 +270,7 @@ class Sprog:
         self.running = True
 
         self.frame_count = 0
-        
+
         gc.enable()
 
 
@@ -279,7 +288,7 @@ class Sprog:
         pass
 
     def run(self):
-        """Start the game loop"""
+        """Starts the game loop"""
         self.init()
         frame_time = 1.0 / 30
 
