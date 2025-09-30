@@ -32,9 +32,9 @@ class TestGame(sprog.Sprog):
         if i.btn("i") == True:
             d.clearText()
             d.addText(x=1, y=5, text=f"frame: {self.frame_count}")
-            d.addText(x=1, y=5, text=f"fps: {self.frame_count - frame_time}")
-            d.addText(x=1, y=15, text=f"x: {dx}")
-            d.addText(x=1, y=25, text=f"x: {dy}")
+            d.addText(x=1, y=15, text=f"fps: {self.elapsed * 30}")
+            d.addText(x=1, y=25, text=f"x: {dx}")
+            d.addText(x=1, y=35, text=f"y: {dy}")
             gc.collect()
         else:
             d.clearText()

@@ -262,6 +262,6 @@ class Sprog:
             self.frame_count += 1
 
             # maintain framerate
-            elapsed = time.monotonic() - frame_start
-            if elapsed < frame_time:
-                time.sleep(frame_time - elapsed)
+            self.elapsed = time.monotonic() - frame_start
+            if self.elapsed < frame_time:
+                time.sleep(frame_time - self.elapsed)
