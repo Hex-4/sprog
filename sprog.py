@@ -122,9 +122,13 @@ class SprogDisplay:
         for i in self.texts:
             if i in self.splash:
                 self.splash.remove(i)
-                gc.collect()
+                
                 del i
                 print(str(gc.mem_free())+"        ")
+        
+        gc.collect()
+        self.texts.clear()        
+                
 
 class SprogInput:
     def __init__(self) -> None:
