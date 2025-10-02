@@ -1,10 +1,3 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
-"""
-This test will initialize the display using displayio and draw a solid green
-background, a smaller purple rectangle, and some yellow text.
-"""
 
 
 import board
@@ -13,13 +6,19 @@ import terminalio
 import busio
 import digitalio
 import math
-from adafruit_display_text import label
+from adafruit_display_text import bitmap_label
 from fourwire import FourWire
 import time
+import gc
 
 from adafruit_st7735r import ST7735R
 
-def normalize(vector):
+def normalize(vector: list[int]):
+    """
+    Turns a vector into a unit vector.
+
+    :param list vector: The vector (in the form of [0,0]) to normalize.
+    """
     if vector[0] + vector[1] > 0:
         magnitude = math.sqrt(sum(x**2 for x in vector))
         return [x / magnitude for x in vector]
@@ -29,12 +28,15 @@ def normalize(vector):
 
 
 def create_cheerful24_palette():
+    """
+    (for internal use) Creates the Sprog palette for use with displayio.
+    """
     palette = displayio.Palette(24)
-    
+
     # Cheerful-24 colors (RGB values)
     colors = [
         (15, 15, 18),      # 0 - dark black
-        (80, 83, 89),      # 1 - dark gray 
+        (80, 83, 89),      # 1 - dark gray
         (182, 191, 188),   # 2 - light gray
         (242, 251, 255),   # 3 - white
         (94, 231, 255),    # 4 - cyan
@@ -58,17 +60,19 @@ def create_cheerful24_palette():
         (235, 117, 190),   # 22 - pink
         (119, 56, 140),    # 23 - purple
     ]
-    
+
     # convert RGB to 24-bit color values
     for i, (r, g, b) in enumerate(colors):
         palette[i] = (r << 16) | (g << 8) | b
-    
+
     return palette
 
 class Sprite:
     def __init__(self, img: list[str]) -> None:
         self.img = img
-
+"""
+(for internal use) This runs also at start and it starts the Sprig screen.
+"""
 def SprigScreen():
     # Release any resources currently in use for the displays
     displayio.release_displays()
@@ -92,95 +96,147 @@ class SprogDisplay:
         palette = create_cheerful24_palette()
         self.bitmap = displayio.Bitmap(160, 128, 24)  # can use all 24 colors
         self.sprite = displayio.TileGrid(self.bitmap, pixel_shader=palette)
-        
+
         self.splash = displayio.Group()
         self.splash.append(self.sprite)
         screen.root_group = self.splash
         self.screen = screen
-        
+        self.texts = []
+        """
+        Creates the Sprog palette for use with sprites.
+        """
+        self.colorSymbols = [
+            "0",  # dark black
+            "1",  # dark gray
+            "2",  # light gray
+            "3",  # white
+            "a",  # cyan
+            "b",  # blue
+            "c",  # dark blue
+            "d",  # navy
+            "e",  # dark teal
+            "f",  # green
+            "g",  # bright green
+            "h",  # light green
+            "i",  # light yellow
+            "j",  # yellow
+            "k",  # orange
+            "l",  # red
+            "m",  # dark red
+            "n",  # maroon
+            "o",  # brown
+            "p",  # light brown
+            "q",  # tan
+            "r",  # peach
+            "s",  # pink
+            "t",  # purple
+        ]
+
+    def renderBitmap(self, x, y, bitmap):
+        """render a bitmap array to the screen (for advanced users)"""
+        for (rowIndex, row) in enumerate(bitmap):
+            for (pixelIndex, pixel) in enumerate(bitmap[rowIndex]):
+                if pixel != ".":
+                    self.pset(pixelIndex + x, rowIndex + y, self.colorSymbols.index(pixel))
+
     def cls(self, color=0):
         """clear screen"""
         self.bitmap.fill(color & 15)
-    
+
     def pset(self, x, y, color):
         """set pixel"""
-        if 0 <= x < 160 and 0 <= y < 128:
-            self.bitmap[math.floor(x), math.floor(y)] = color & 15
-            
+        if 0 <= x < 160 and 0 <= y < 128: # if pixel in bounds
+            self.bitmap[math.floor(x), math.floor(y)] = color & 15 # set in bitmap
+
     def addText(self, x, y, text):
-        """Called when adding text"""
-        l = label.Label(terminalio.FONT, text=text)
+        """Called when adding text."""
+        l = bitmap_label.Label(terminalio.FONT, text=text)
         l.x = x
         l.y = y
         self.splash.append(l)
+        self.texts.append(l)
         return l
-    def clearText(self, label):
+    def clearText(self):
         """Called when deleting text"""
-        self.splash.remove(label)
-            
+        for i in self.texts:
+            if i in self.splash:
+                self.splash.remove(i)
+
+                del i
+                print(str(gc.mem_free())+"        ")
+
+        gc.collect()
+        self.texts.clear()
+
+
 class SprogInput:
+    """
+    (for internal use) This runs at the start for the buttons to work.
+    """
     def __init__(self) -> None:
         pins = {
             "w": board.GP5, # pyright: ignore[reportAttributeAccessIssue]
             "a": board.GP6, # pyright: ignore[reportAttributeAccessIssue]
             "s": board.GP7, # pyright: ignore[reportAttributeAccessIssue]
             "d": board.GP8, # pyright: ignore[reportAttributeAccessIssue]
-            
+
             "i": board.GP12, # pyright: ignore[reportAttributeAccessIssue]
             "j": board.GP13, # pyright: ignore[reportAttributeAccessIssue]
             "k": board.GP14, # pyright: ignore[reportAttributeAccessIssue]
             "l": board.GP15  # pyright: ignore[reportAttributeAccessIssue]
         }
-        
+
         self.buttons = {
             "w": 0,
             "a": 0,
             "s": 0,
             "d": 0,
-            
+
             "i": 0,
             "j": 0,
             "k": 0,
             "l": 0,
         }
-        
+
         self.ios: dict[str, digitalio.DigitalInOut] = {}
-        
+
         for name, pin in pins.items():
             btn = digitalio.DigitalInOut(pin)
             btn.direction = digitalio.Direction.INPUT
             btn.pull = digitalio.Pull.UP
             self.ios[name] = btn
-    
+
     def poll(self) -> None:
         for name, io in self.ios.items():
             if not io.value: # if pressed
                 self.buttons[name] += 1
             else:
                 self.buttons[name] = 0
-                
+    """If the button is is pressed or hold"""
     def btn(self, name: str) -> bool:
         if self.buttons[name] > 0:
             return True
         else:
             return False
-        
+    """If the button is is pressed for one frame (aka no hold)"""
     def btnp(self, name):
         if self.buttons[name] == 1:
             return True
         else:
             return False
-        
+    """Sendes a list of the buttons cuerrently pressed"""
     def btna(self):
         pressed: list[str] = []
         for btn, frames in self.buttons.items():
             if frames > 0:
                 pressed.append(btn)
         return pressed
-        
+    """How long is the button holded"""
     def btnf(self, name):
         return self.buttons[name]
-    
+    """
+    For selecting what size to use the buttons. Default is left (WASD).
+    """
     def dir(self, side = "left"):
         values: dict[str, list[int]] = {}
         if side == "left":
@@ -202,52 +258,54 @@ class SprogInput:
             if btn in values:
                 vector[0] += values[btn][0]
                 vector[1] += values[btn][1]
-        
+
         return normalize(vector)
 
-          
+
 class Sprog:
     def __init__(self):
         self.display = SprogDisplay(SprigScreen())
         self.input = SprogInput()
-        
+
         self.running = True
-        
+
         self.frame_count = 0
-        
-        
-        
+
+        gc.enable()
+
+
+
     def init(self):
         """Called once at startup - override this"""
         pass
-    
+
     def update(self):
         """Called every frame before draw - override this"""
         pass
-    
+
     def draw(self):
         """Called every frame after update - override this"""
         pass
-    
+
     def run(self):
-        """Start the game loop"""
+        """Starts the game loop"""
         self.init()
         frame_time = 1.0 / 30
 
-        
-        
+
+
         while self.running:
             frame_start = time.monotonic()
-            
+
             # call user methods
             self.input.poll()
             self.update()
             self.draw()
             self.display.screen.refresh()
-            
+
             self.frame_count += 1
-            
+
             # maintain framerate
-            elapsed = time.monotonic() - frame_start
-            if elapsed < frame_time:
-                time.sleep(frame_time - elapsed)
+            self.elapsed = time.monotonic() - frame_start
+            if self.elapsed < frame_time:
+                time.sleep(frame_time - self.elapsed)
