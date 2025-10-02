@@ -17,7 +17,6 @@ class TestGame(sprog.Sprog):
     def update(self):
         i = self.input
         d = self.display
-        frame_time = 1.0 / 30
         dx, dy = i.dir()
         self.x += dx
         self.y += dy
