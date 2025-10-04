@@ -105,9 +105,6 @@ class SprogDisplay:
         """
         Creates the Sprog palette for use with sprites.
         """
-        """
-        Creates the Sprog palette for use with sprites.
-        """
         self.colorSymbols = [
             "0",  # dark black
             "1",  # dark gray
@@ -178,9 +175,6 @@ class SprogDisplay:
 
 
 class SprogInput:
-    """
-    (for internal use) This runs at the start for the buttons to work.
-    """
     """
     (for internal use) This runs at the start for the buttons to work.
     """
