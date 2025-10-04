@@ -72,9 +72,6 @@ class Sprite:
 """
 (for internal use) This runs also at start and it starts the Sprig screen.
 """
-"""
-(for internal use) This runs also at start and it starts the Sprig screen.
-"""
 def SprigScreen():
     # Release any resources currently in use for the displays
     displayio.release_displays()
@@ -146,7 +143,7 @@ class SprogDisplay:
                 if pixel != ".":
                     self.pset(pixelIndex + x, rowIndex + y, self.colorSymbols.index(pixel))
 
-    def cls(self, color=0):
+    def cls(self, color = 0):
         """clear screen"""
         self.bitmap.fill(color & 15)
 
@@ -155,7 +152,7 @@ class SprogDisplay:
         if 0 <= x < 160 and 0 <= y < 128: # if pixel in bounds
             self.bitmap[math.floor(x), math.floor(y)] = color & 15 # set in bitmap
 
-    def addText(self, x, y, text, color=3, centered = False):
+    def addText(self, x, y, text, color = 3, centered = False):
         """Called when adding text."""
         l = bitmap_label.Label(terminalio.FONT, text=text, color=self.palette[color])
         if centered:
@@ -293,7 +290,7 @@ class Sprog:
         gc.enable()
 
     def init_metadata(self):
-        self.gameTitle = "Sprog Game"
+        self.gameTitle = "Untitled Game"
 
     def init(self):
         """Called once at startup - override this"""

@@ -12,7 +12,6 @@ playerSprite = [
 ]
 
 class TestGame(sprog.Sprog):
-
     def init_metadata(self):
         self.gameTitle = "Snake"
 
