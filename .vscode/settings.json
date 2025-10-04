@@ -1,0 +1,8 @@
+{
+  "python.languageServer": "None",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingModuleSource": "none",
+    "reportShadowedImports": "none"
+  },
+  "circuitpython.board.version": null
+}
