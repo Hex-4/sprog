@@ -1,5 +1,3 @@
-
-
 import board
 import displayio
 import terminalio
@@ -16,6 +14,7 @@ from adafruit_st7735r import ST7735R
 def normalize(vector: list[int]):
     """
     Turns a vector into a unit vector.
+
 
     :param list vector: The vector (in the form of [0,0]) to normalize.
     """
@@ -73,6 +72,9 @@ class Sprite:
 """
 (for internal use) This runs also at start and it starts the Sprig screen.
 """
+"""
+(for internal use) This runs also at start and it starts the Sprig screen.
+"""
 def SprigScreen():
     # Release any resources currently in use for the displays
     displayio.release_displays()
@@ -81,6 +83,7 @@ def SprigScreen():
 
     if spi.try_lock():
         spi.configure(baudrate=64000000)
+        spi.unlock()
         spi.unlock()
 
     tft_cs = board.GP20 # pyright: ignore[reportAttributeAccessIssue]
@@ -93,15 +96,18 @@ def SprigScreen():
 class SprogDisplay:
     def __init__(self, screen):
         screen.auto_refresh = False
-        palette = create_cheerful24_palette()
+        self.palette = create_cheerful24_palette()
         self.bitmap = displayio.Bitmap(160, 128, 24)  # can use all 24 colors
-        self.sprite = displayio.TileGrid(self.bitmap, pixel_shader=palette)
+        self.sprite = displayio.TileGrid(self.bitmap, pixel_shader=self.palette)
 
         self.splash = displayio.Group()
         self.splash.append(self.sprite)
         screen.root_group = self.splash
         self.screen = screen
         self.texts = []
+        """
+        Creates the Sprog palette for use with sprites.
+        """
         """
         Creates the Sprog palette for use with sprites.
         """
@@ -116,7 +122,7 @@ class SprogDisplay:
             "d",  # navy
             "e",  # dark teal
             "f",  # green
-            "g",  # bright green
+            "g",  # bright green 11
             "h",  # light green
             "i",  # light yellow
             "j",  # yellow
@@ -131,6 +137,7 @@ class SprogDisplay:
             "s",  # pink
             "t",  # purple
         ]
+
 
     def renderBitmap(self, x, y, bitmap):
         """render a bitmap array to the screen (for advanced users)"""
@@ -148,13 +155,17 @@ class SprogDisplay:
         if 0 <= x < 160 and 0 <= y < 128: # if pixel in bounds
             self.bitmap[math.floor(x), math.floor(y)] = color & 15 # set in bitmap
 
-    def addText(self, x, y, text):
+    def addText(self, x, y, text, color=3, centered = False):
         """Called when adding text."""
-        l = bitmap_label.Label(terminalio.FONT, text=text)
-        l.x = x
-        l.y = y
+        l = bitmap_label.Label(terminalio.FONT, text=text, color=self.palette[color])
+        if centered:
+            l.anchor_point = (0.5, 0.5)
+        l.anchored_position = (x, y)
+        
         self.splash.append(l)
         self.texts.append(l)
+        
+        
         return l
     def clearText(self):
         """Called when deleting text"""
@@ -170,6 +181,9 @@ class SprogDisplay:
 
 
 class SprogInput:
+    """
+    (for internal use) This runs at the start for the buttons to work.
+    """
     """
     (for internal use) This runs at the start for the buttons to work.
     """
@@ -264,16 +278,22 @@ class SprogInput:
 
 class Sprog:
     def __init__(self):
+        
+        
         self.display = SprogDisplay(SprigScreen())
         self.input = SprogInput()
 
-        self.running = True
-
+        # self.running = True for automaticly going to the game. Perfect for testing games.
         self.frame_count = 0
+        
+        self.running = False
+        
+        self.init_metadata()
 
         gc.enable()
-
-
+        
+    def init_metadata(self):
+        self.gameTitle = "Sprog Game"
 
     def init(self):
         """Called once at startup - override this"""
@@ -291,9 +311,17 @@ class Sprog:
         """Starts the game loop"""
         self.init()
         frame_time = 1.0 / 30
+        while self.running == False:
+            self.display.cls(3)
+            self.display.pset(x=160, y=42, color=10)
+            self.display.addText(x=80, y=21, text=self.gameTitle, color=10, centered=True)
+            self.display.addText(x=80, y=64, text="Press J to start!", color=10, centered=True)
+            self.display.screen.refresh()
+            self.input.poll()
 
+            if self.input.btn("j") == True:
 
-
+                self.running = True
         while self.running:
             frame_start = time.monotonic()
 
