@@ -24,8 +24,9 @@ class TestGame(sprog.Sprog):
         dx, dy = i.dir()
         self.x += dx
         self.y += dy
-        pressed = i.btna()
 
+        pressed = i.btna()
+        time = i.btnp(name = "i")
         dx, dy = i.dir("right")
         self.x += dx * 3
         self.y += dy * 3
@@ -39,6 +40,7 @@ class TestGame(sprog.Sprog):
             d.addText(x=1, y=25, text=f"x: {dx}")
             d.addText(x=1, y=35, text=f"y: {dy}")
             d.addText(x=1, y=45, text=f"button pressed: {pressed}")
+            d.addText(x=1, y=45, text=f"debug menu opened: {time}")
             gc.collect()
         else:
             d.clearText()
