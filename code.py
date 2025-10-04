@@ -12,11 +12,11 @@ playerSprite = [
 ]
 
 class TestGame(sprog.Sprog):
-    
+
     def init_metadata(self):
         self.gameTitle = "Snake"
-    
-    
+
+
     def init(self):
         self.x, self.y = 0, 0
     def update(self):
@@ -25,6 +25,7 @@ class TestGame(sprog.Sprog):
         dx, dy = i.dir()
         self.x += dx
         self.y += dy
+        pressed = i.btna()
 
         dx, dy = i.dir("right")
         self.x += dx * 3
@@ -33,10 +34,12 @@ class TestGame(sprog.Sprog):
 
         if i.btn("i") == True:
             d.clearText()
+            # note to myself: add a 10 in the y axis so theres actualy space as it uses pixels.
             d.addText(x=1, y=5, text=f"frame: {self.frame_count}")
             d.addText(x=1, y=15, text=f"fps: {self.elapsed * 30}")
             d.addText(x=1, y=25, text=f"x: {dx}")
             d.addText(x=1, y=35, text=f"y: {dy}")
+            d.addText(x=1, y=45, text=f"button pressed: {pressed}")
             gc.collect()
         else:
             d.clearText()
