@@ -161,11 +161,11 @@ class SprogDisplay:
         if centered:
             l.anchor_point = (0.5, 0.5)
         l.anchored_position = (x, y)
-        
+
         self.splash.append(l)
         self.texts.append(l)
-        
-        
+
+
         return l
     def clearText(self):
         """Called when deleting text"""
@@ -278,20 +278,20 @@ class SprogInput:
 
 class Sprog:
     def __init__(self):
-        
-        
+
+
         self.display = SprogDisplay(SprigScreen())
         self.input = SprogInput()
 
         # self.running = True for automaticly going to the game. Perfect for testing games.
         self.frame_count = 0
-        
+
         self.running = False
-        
+
         self.init_metadata()
 
         gc.enable()
-        
+
     def init_metadata(self):
         self.gameTitle = "Sprog Game"
 
@@ -320,7 +320,6 @@ class Sprog:
             self.input.poll()
 
             if self.input.btn("j") == True:
-
                 self.running = True
         while self.running:
             frame_start = time.monotonic()
