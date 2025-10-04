@@ -314,8 +314,8 @@ class Sprog:
         while self.running == False:
             self.display.cls(3)
             self.display.pset(x=160, y=42, color=10)
-            self.display.addText(x=80, y=21, text=self.gameTitle, color=10, centered=True)
-            self.display.addText(x=80, y=64, text="Press J to start!", color=10, centered=True)
+            self.display.addText(x=80, y=21, text=self.gameTitle, color=3, centered=True)
+            self.display.addText(x=80, y=64, text="Press J to start!", color=0, centered=True)
             self.display.screen.refresh()
             self.input.poll()
 
