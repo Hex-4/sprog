@@ -26,7 +26,7 @@ class TestGame(sprog.Sprog):
         self.y += dy
 
         pressed = i.btna()
-        time = i.btnp(name = "i")
+        time = i.btnf("i")
         dx, dy = i.dir("right")
         self.x += dx * 3
         self.y += dy * 3
@@ -37,10 +37,10 @@ class TestGame(sprog.Sprog):
             # note to myself: add a 10 in the y axis so theres actualy space as it uses pixels.
             d.addText(x=1, y=5, text=f"frame: {self.frame_count}")
             d.addText(x=1, y=15, text=f"fps: {self.elapsed * 30}")
-            d.addText(x=1, y=25, text=f"x: {dx}")
-            d.addText(x=1, y=35, text=f"y: {dy}")
+            d.addText(x=1, y=25, text=f"x: {self.x}")
+            d.addText(x=1, y=35, text=f"y: {self.y}")
             d.addText(x=1, y=45, text=f"button pressed: {pressed}")
-            d.addText(x=1, y=45, text=f"debug menu opened: {time}")
+            d.addText(x=1, y=55, text=f"debug menu opened: {time}")
             gc.collect()
         else:
             d.clearText()

@@ -1,5 +1,12 @@
+
+
+
+from displayio import Palette
+
+
 import board
 import displayio
+from microcontroller import Pin
 import terminalio
 import busio
 import digitalio
@@ -11,12 +18,14 @@ import gc
 
 from adafruit_st7735r import ST7735R
 
-def normalize(vector: list[int]):
+def normalize(vector: list[int]) -> list[float] | list[int]:
     """
     Turns a vector into a unit vector.
 
 
     :param list vector: The vector (in the form of [0,0]) to normalize.
+    
+    :return: The normalized vector (in the form of [0,0])
     """
     if vector[0] + vector[1] > 0:
         magnitude = math.sqrt(sum(x**2 for x in vector))
@@ -26,14 +35,16 @@ def normalize(vector: list[int]):
 
 
 
-def create_cheerful24_palette():
+def create_cheerful24_palette() -> Palette:
     """
     (for internal use) Creates the Sprog palette for use with displayio.
+    
+    :return: a displayio Palette object.
     """
-    palette = displayio.Palette(24)
+    palette: Palette = displayio.Palette(color_count=24)
 
     # Cheerful-24 colors (RGB values)
-    colors = [
+    colors: list[tuple[int, int, int]] = [
         (15, 15, 18),      # 0 - dark black
         (80, 83, 89),      # 1 - dark gray
         (182, 191, 188),   # 2 - light gray
@@ -69,17 +80,20 @@ def create_cheerful24_palette():
 class Sprite:
     def __init__(self, img: list[str]) -> None:
         self.img = img
-"""
-(for internal use) This runs also at start and it starts the Sprig screen.
-"""
-def SprigScreen():
+
+def SprigScreen() -> ST7735R:
+    """
+    (for internal use) A display adapter for the ST7735R (the default Sprig display), initialized at the start
+    
+    :return: A ST7735R object (BusDisolay)
+    """
     # Release any resources currently in use for the displays
     displayio.release_displays()
 
     spi = busio.SPI(board.GP18, board.GP19) # pyright: ignore[reportAttributeAccessIssue]
 
     if spi.try_lock():
-        spi.configure(baudrate=64000000)
+        spi.configure(baudrate=64000000) # Speed up screen drawing
         spi.unlock()
         spi.unlock()
 
@@ -91,8 +105,13 @@ def SprigScreen():
     return ST7735R(display_bus, width=160, height=128, rotation=270, bgr=True)
 
 class SprogDisplay:
-    def __init__(self, screen):
-        screen.auto_refresh = False
+    """
+    (automatically initalized) The Sprog display API. Includes methods for displaying pixels, text, and bitmaps.
+    
+    :param BusDisplay screen: A BusDisplay object to connect to. Use a display adapter like SprigScreen() to get this.
+    """
+    def __init__(self, screen) -> None:
+        screen.auto_refresh = False # We refresh in draw()
         self.palette = create_cheerful24_palette()
         self.bitmap = displayio.Bitmap(160, 128, 24)  # can use all 24 colors
         self.sprite = displayio.TileGrid(self.bitmap, pixel_shader=self.palette)
@@ -102,9 +121,8 @@ class SprogDisplay:
         screen.root_group = self.splash
         self.screen = screen
         self.texts = []
-        """
-        Creates the Sprog palette for use with sprites.
-        """
+        
+        # Creates the Sprog palette for use with sprites.
         self.colorSymbols = [
             "0",  # dark black
             "1",  # dark gray
@@ -133,36 +151,59 @@ class SprogDisplay:
         ]
 
 
-    def renderBitmap(self, x, y, bitmap):
-        """render a bitmap array to the screen (for advanced users)"""
+    def renderBitmap(self, x: float, y: float, bitmap: list[str]) -> None:
+        """
+        Render a bitmap array to the screen, with the top left corner at x, y (this is an advanced function, for most uses the Sprite API is better)
+        :param float x: X position, in pixels, of the top left corner
+        :param float y: Y position, in pixels, of the top left corner
+        :param list[str] bitmap: A bitmap array using the palette colorSymbols
+        """
         for (rowIndex, row) in enumerate(bitmap):
             for (pixelIndex, pixel) in enumerate(bitmap[rowIndex]):
                 if pixel != ".":
                     self.pset(pixelIndex + x, rowIndex + y, self.colorSymbols.index(pixel))
 
-    def cls(self, color = 0):
-        """clear screen"""
+    def cls(self, color: int = 0) -> None:
+        """
+        Clear screen
+        :param int color: The color index that the screen should be set to.
+        """
         self.bitmap.fill(color & 15)
 
-    def pset(self, x, y, color):
-        """set pixel"""
+    def pset(self, x: float, y: float, color: int) -> None:
+        """
+        Sets a pixel to a color on the screen.
+        :param float x: The X position of the pixel
+        :param float y: The Y position of the pixel
+        :param int color: The color index to set the pixel to
+        """
         if 0 <= x < 160 and 0 <= y < 128: # if pixel in bounds
             self.bitmap[math.floor(x), math.floor(y)] = color & 15 # set in bitmap
 
-    def addText(self, x, y, text, color = 3, centered = False):
-        """Called when adding text."""
+    def addText(self, x: int, y: int, text: str, color: int = 3, centered: bool = False) -> bitmap_label:
+        """
+        Create text to be displayed on the screen. Persists across cls() calls until removed with clearText().
+        :param int x: The X position of the text
+        :param int y: The Y position of the text
+        :param str text: The text to render
+        :param int color: The color index to use for the text
+        :param bool centered: Whether to center the text or anchor at the top left corner
+        """
         l = bitmap_label.Label(terminalio.FONT, text=text, color=self.palette[color])
         if centered:
             l.anchor_point = (0.5, 0.5)
+        else:
+            l.anchor_point = (0, 0)
         l.anchored_position = (x, y)
-
         self.splash.append(l)
         self.texts.append(l)
 
 
         return l
-    def clearText(self):
-        """Called when deleting text"""
+    def clearText(self) -> None:
+        """
+        Deletes all text labels.
+        """
         for i in self.texts:
             if i in self.splash:
                 self.splash.remove(i)
@@ -176,10 +217,15 @@ class SprogDisplay:
 
 class SprogInput:
     """
-    (for internal use) This runs at the start for the buttons to work.
+    The Sprog input API. Includes polling, state checking, press detection, and many other helpers.
+    
+    (automatically initialized on boot)
     """
     def __init__(self) -> None:
-        pins = {
+        """
+        Initalizes the input API by creating DigitalInOuts for all buttons.
+        """
+        pins: dict[str, Pin] = {
             "w": board.GP5, # pyright: ignore[reportAttributeAccessIssue]
             "a": board.GP6, # pyright: ignore[reportAttributeAccessIssue]
             "s": board.GP7, # pyright: ignore[reportAttributeAccessIssue]
@@ -191,7 +237,7 @@ class SprogInput:
             "l": board.GP15  # pyright: ignore[reportAttributeAccessIssue]
         }
 
-        self.buttons = {
+        self.buttons: dict[str, int] = {
             "w": 0,
             "a": 0,
             "s": 0,
@@ -212,37 +258,58 @@ class SprogInput:
             self.ios[name] = btn
 
     def poll(self) -> None:
+        """
+        Polls all buttons, runs every frame automatically.
+        """
         for name, io in self.ios.items():
             if not io.value: # if pressed
                 self.buttons[name] += 1
             else:
                 self.buttons[name] = 0
-    """If the button is is pressed or hold"""
+    
     def btn(self, name: str) -> bool:
+        """
+        Check if the button is pressed or held at all
+        
+        :param str name: The letter name of the button to check
+        """
         if self.buttons[name] > 0:
             return True
         else:
             return False
-    """If the button is is pressed for one frame (aka no hold)"""
-    def btnp(self, name):
+        
+    def btnp(self, name) -> bool:
+        """
+        Check if the button was just pressed (True for one frame only)
+        
+        :param str name: The letter name of the button to check
+        """
         if self.buttons[name] == 1:
             return True
         else:
             return False
-    """Sendes a list of the buttons cuerrently pressed"""
-    def btna(self):
+    
+    def btna(self) -> list[str]:
+        """Get a list of the buttons currently pressed"""
         pressed: list[str] = []
         for btn, frames in self.buttons.items():
             if frames > 0:
                 pressed.append(btn)
         return pressed
-    """How long is the button holded"""
-    def btnf(self, name):
+    
+    
+    def btnf(self, name) -> int:
+        """Get how many frames a button was pressed for"""
         return self.buttons[name]
-    """
-    For selecting what size to use the buttons. Default is left (WASD).
-    """
-    def dir(self, side = "left"):
+    
+    def dir(self, side = "left") -> list[float] | list[int]:
+        """
+        Get a vector (list with two numbers, like [-1, 1]) representing the current state of either side of buttons. Add these values to your player's x and y coordinates to quickly make a movement system. Automatically normalizes the result so diagonal movement isn't faster.
+        
+        For example, if the up button is pressed, this returns [0, 1].
+        
+        :param str side: Which side ("left" or "right") to poll.
+        """
         values: dict[str, list[int]] = {}
         if side == "left":
             values = {
@@ -268,34 +335,43 @@ class SprogInput:
 
 
 class Sprog:
+    """
+    A Sprog game. Extend this class to make your own! This includes a menu, initalizes all subclasses, and has draw() and update() functions for you to overwrite.
+    """
     def __init__(self):
-
+        """
+        Initializes a Sprog game.
+        """
 
         self.display = SprogDisplay(SprigScreen())
         self.input = SprogInput()
 
-        # self.running = True for automaticly going to the game. Perfect for testing games.
+        
         self.frame_count = 0
 
+        # self.running = True for automaticly going to the game. Perfect for testing games.
         self.running = False
 
         self.init_metadata()
 
         gc.enable()
 
-    def init_metadata(self):
+    def init_metadata(self) -> None:
+        """
+        Set up your game's metadata here!
+        """
         self.gameTitle = "Untitled Game"
 
     def init(self):
-        """Called once at startup - override this"""
+        """Called once at startup - override this!"""
         pass
 
     def update(self):
-        """Called every frame before draw - override this"""
+        """Called every frame before draw - override this!"""
         pass
 
     def draw(self):
-        """Called every frame after update - override this"""
+        """Called every frame after update - override this!"""
         pass
 
     def run(self):
