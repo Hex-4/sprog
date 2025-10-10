@@ -42,8 +42,10 @@ use embedded_time::fixed_point::FixedPoint;
 use embedded_time::rate::Extensions;
 use rp_pico::hal::clocks::Clock;
 use rp_pico::hal::fugit::RateExtU32;
-use st7735_lcd;
-use st7735_lcd::Orientation;
+use st7735_lcd_doublebuffering::{Orientation, ST7735Buffered};
+use embedded_hal_compat::{ForwardCompat, ReverseCompat};
+use embedded_hal_bus::spi::ExclusiveDevice;
+use embedded_hal_bus::spi::CriticalSectionDevice;
 
 // A shorter alias for the Peripheral Access Crate, which provides low-level
 // register access
@@ -146,6 +148,7 @@ fn main() -> ! {
     // The delay object lets us wait for specified amounts of time (in
     // milliseconds)
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+    let mut delay_compat = delay.forward();
 
     // The single-cycle I/O block controls our GPIO pins
     let sio = hal::Sio::new(pac.SIO);
@@ -176,12 +179,14 @@ fn main() -> ! {
         RateExtU32::Hz(64_000_000),
         &embedded_hal::spi::MODE_0,
     );
+    let spi_device = ExclusiveDevice::new(spi, spi_cs, embedded_hal_bus::spi::NoDelay).unwrap();
 
-    let mut disp = st7735_lcd::ST7735::new(spi, dc, rst, true, false, 160, 128);
 
-    disp.init(&mut delay).unwrap();
-    disp.set_orientation(&Orientation::Landscape).unwrap();
-    disp.clear(Rgb565::BLACK).unwrap();
+    let rgb = true;
+    let width = 160;
+    let height = 128;
+
+    let mut display = ST7735Buffered::new(spi_device, dc, rgb, width, height);
 
     let mut yoffset = 10;
     let thin_stroke = PrimitiveStyle::with_stroke(Rgb565::BLUE, 1);
@@ -200,17 +205,35 @@ fn main() -> ! {
         l: pins.gpio15.into_pull_up_input(),
     };
 
-    let mut ran = false;
+    display
+        .init(&mut delay_compat, &Orientation::LandscapeSwapped)
+        .unwrap();
+    display.set_offset(0, 0);
 
-    led_pin.set_high().unwrap();
+    let style = PrimitiveStyle::with_fill(Rgb565::RED);
+    let mut x = 0;
+    let mut y = 0;
+    let mut x_speed = 2;
+    let mut y_speed = 2;
+    let diameter = 20;
 
     loop {
-        if !ran {
-            if input.w.is_low().unwrap() {
-                ran = true
-            }
+        display.clear(Rgb565::BLACK).unwrap();
+        Circle::new(Point::new(x, y), diameter)
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+        display.swap_buffers().unwrap();
+        x += x_speed;
+        y += y_speed;
+
+        if x <= 0 || x + diameter as i32 >= width as i32 {
+            x_speed = -x_speed;
         }
 
+        if y <= 0 || y + diameter as i32 >= height as i32 {
+            y_speed = -y_speed;
+        }
     }
 }
 
