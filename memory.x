@@ -1,6 +1,7 @@
 MEMORY {
-    BOOT2 : ORIGIN = 0x10000000, LENGTH = 0x100
-    FLASH : ORIGIN = 0x10000100, LENGTH = 2048K - 0x100
+    BOOT2   : ORIGIN = 0x10000000, LENGTH = 0x100
+    FLASH   : ORIGIN = 0x10000100, LENGTH = 3072K - 0x100
+    STORAGE : ORIGIN = ORIGIN(FLASH) + LENGTH(FLASH), LENGTH = 1024K
 
     /* Pick one of the two options for RAM layout     */
 
@@ -15,3 +16,6 @@ MEMORY {
     /* SCRATCH_A: ORIGIN = 0x20040000, LENGTH = 4K    */
     /* SCRATCH_B: ORIGIN = 0x20041000, LENGTH = 4K    */
 }
+__flash_size = 4194304;
+__storage_flash_size = 1048576;
+__storage_flash_offset = ORIGIN(STORAGE) - ORIGIN(BOOT2);
