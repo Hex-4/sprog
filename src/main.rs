@@ -12,12 +12,10 @@ use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output, Input, Pull};
 use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
-use embassy_time::{Duration, Timer};
 use mipidsi::models::ST7735s;
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 use embassy_rp::spi::{Spi, Config as SpiConfig};
-use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use display_interface_spi::SPIInterface;
 use mipidsi::Builder;
@@ -48,7 +46,7 @@ async fn cyw43_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'stat
 
 
 
-async fn text(text: &str, x: u32, y: u32) {
+async fn text(text: &str, x: i32, y: i32) -> Text<'_, MonoTextStyle<'_, BinaryColor>> {
     let style = MonoTextStyleBuilder::new()
         .font(&FONT_5X8)
         .text_color(BinaryColor::Off)
@@ -122,7 +120,7 @@ async fn main(spawner: Spawner) {
     let display_spi = SpiDeviceWithConfig::new(&spi_bus, cs, display_config);
 
     // create display interface with buffer
-    let mut buffer = [0u8; 512];
+    let buffer = [0u8; 512];
     let di = SPIInterface::new(display_spi, dc);
 
     let mut display = Builder::new(ST7735s, di)
@@ -138,7 +136,6 @@ async fn main(spawner: Spawner) {
         .set_power_management(cyw43::PowerManagementMode::PowerSave)
         .await;
 
-    let delay = Duration::from_secs(1);
     loop {
         if w.is_high() {
             info!("led on!");
