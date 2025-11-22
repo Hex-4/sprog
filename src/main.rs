@@ -139,12 +139,12 @@ async fn main(spawner: Spawner) {
             info!("led on!");
             control.gpio_set(0, true).await;  
             display.clear(Rgb565::RED).unwrap(); 
-            text("led on!", 10, 10).await;
         }
         else {
             info!("led off!");
             control.gpio_set(0, false).await;
             display.clear(Rgb565::BLACK).unwrap();
+            text("led on!", 10, 10).await;
         }
 
     }
