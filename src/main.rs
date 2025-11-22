@@ -19,6 +19,7 @@ use embassy_rp::spi::{Spi, Config as SpiConfig};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use display_interface_spi::SPIInterface;
 use mipidsi::Builder;
+use mipidsi::Display;
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_10X20, FONT_5X8, FONT_6X12, FONT_9X15},
@@ -46,16 +47,13 @@ async fn cyw43_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'stat
 
 
 
-async fn text(text: &str, x: i32, y: i32) -> Text<'_, MonoTextStyle<'_, BinaryColor>> {
-    let style = MonoTextStyleBuilder::new()
-        .font(&FONT_5X8)
-        .text_color(BinaryColor::Off)
-        .build();
-    Text::new(
-        text,
-        Point::new(x, y),
-        style        
-    )
+async fn text(display: &mut impl DrawTarget<Color = Rgb565>, text: &str, x: i32, y: i32) -> Result<(), ()> {
+    let style = MonoTextStyle::new(&FONT_5X8, Rgb565::WHITE);
+    Text::new(text, Point::new(x, y), style)
+        .draw(display)
+        .map_err(|_| ())?;
+    
+    Ok(())
 }
 
 #[embassy_executor::main]
@@ -141,7 +139,7 @@ async fn main(spawner: Spawner) {
             info!("led on!");
             control.gpio_set(0, true).await;  
             display.clear(Rgb565::RED).unwrap(); 
-            text("led on!", 10, 10).await;
+            text(&mut display, "led on!", 10, 10).await.unwrap();
         }
         else {
             info!("led off!");
