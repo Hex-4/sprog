@@ -9,7 +9,7 @@ use cyw43_pio::{DEFAULT_CLOCK_DIVIDER, PioSpi};
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
-use embassy_rp::gpio::{Level, Output, Input};
+use embassy_rp::gpio::{Level, Output, Input, Pull};
 use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_time::{Duration, Timer};
@@ -64,14 +64,14 @@ async fn main(spawner: Spawner) {
         p.PIN_29,
         p.DMA_CH0,
     );
-    let w = Input::new(p.PIN_7, Pull::Up);
-    let a = Input::new(p.PIN_9, Pull::Up);
-    let s = Input::new(p.PIN_10, Pull::Up);
-    let d = Input::new(p.PIN_11, Pull::Up);
-    let i = Input::new(p.PIN_16, Pull::Up);
-    let j = Input::new(p.PIN_17, Pull::Up);
-    let k = Input::new(p.PIN_19, Pull::Up);
-    let l = Input::new(p.PIN_20, Pull::Up);
+    let w = Input::new(p.PIN_5, Pull::Up);
+    let a = Input::new(p.PIN_6, Pull::Up);
+    let s = Input::new(p.PIN_7, Pull::Up);
+    let d = Input::new(p.PIN_8, Pull::Up);
+    let i = Input::new(p.PIN_12, Pull::Up);
+    let j = Input::new(p.PIN_13, Pull::Up);
+    let k = Input::new(p.PIN_14, Pull::Up);
+    let l = Input::new(p.PIN_15, Pull::Up);
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state = STATE.init(cyw43::State::new());
@@ -118,11 +118,13 @@ async fn main(spawner: Spawner) {
     loop {
         if w.is_high() {
             info!("led on!");
-            control.gpio_set(0, true).await;   
+            control.gpio_set(0, true).await;  
+            display.clear(Rgb565::RED).unwrap(); 
         }
         else {
             info!("led off!");
             control.gpio_set(0, false).await;
+            display.clear(Rgb565::BLACK).unwrap();
         }
 
     }
