@@ -80,13 +80,15 @@ async fn main(spawner: Spawner) {
 
 
     let mut display_config = SpiConfig::default();
-    display_config.frequency = 16_000_000; // 16 MHz
+    display_config.frequency = 62_500_000; // 62.5 MHz
     
-    let spi = Spi::new_blocking(
+    let spi = Spi::new(
         p.SPI0,
         p.PIN_18, // SCK
         p.PIN_19, // MOSI
         p.PIN_16, // MISO
+        p.DMA_CH1,
+        p.DMA_CH2,
         display_config.clone(),
     );
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
@@ -126,6 +128,5 @@ async fn main(spawner: Spawner) {
             control.gpio_set(0, false).await;
             display.clear(Rgb565::BLACK).unwrap();
         }
-
     }
 }
