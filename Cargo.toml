@@ -42,8 +42,9 @@ log = "0.4"
 pio-proc = "0.3"
 pio = "0.3.0"
 rand = { version = "0.9.1", default-features = false }
-embedded-graphics = "0.8.1"
-st7735-lcd-doublebuffering = "0.1.1"
+mipidsi = "0.8"
+display-interface-spi = "0.5"
+embedded-graphics = "0.8"
 
 [profile.release]
 debug = 2

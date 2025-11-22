@@ -13,8 +13,21 @@ use embassy_rp::gpio::{Level, Output};
 use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_time::{Duration, Timer};
+use mipidsi::models::ST7735s;
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
+use embassy_rp::spi::{Spi, Config as SpiConfig};
+use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use display_interface_spi::SPIInterface;
+use mipidsi::Builder;
+use embedded_graphics::prelude::*;
+use embedded_graphics::pixelcolor::Rgb565;
+use core::cell::RefCell;
+use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
+
+use embassy_sync::blocking_mutex::Mutex;
+
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => InterruptHandler<PIO0>;
@@ -56,6 +69,37 @@ async fn main(spawner: Spawner) {
     let state = STATE.init(cyw43::State::new());
     let (_net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw).await;
     spawner.spawn(cyw43_task(runner)).unwrap();
+
+
+    let mut display_config = SpiConfig::default();
+    display_config.frequency = 16_000_000; // 16 MHz
+    
+    let spi = Spi::new_blocking(
+        p.SPI0,
+        p.PIN_18, // SCK
+        p.PIN_19, // MOSI
+        p.PIN_16, // MISO
+        display_config.clone(),
+    );
+    let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
+
+    let dc = Output::new(p.PIN_22, Level::Low);
+    let rst = Output::new(p.PIN_26, Level::Low);
+    let cs = Output::new(p.PIN_20, Level::High);
+
+    let display_spi = SpiDeviceWithConfig::new(&spi_bus, cs, display_config);
+
+    // create display interface with buffer
+    let mut buffer = [0u8; 512];
+    let di = SPIInterface::new(display_spi, dc);
+
+    let mut display = Builder::new(ST7735s, di)
+        .reset_pin(rst)
+        .init(&mut embassy_time::Delay)
+        .unwrap();
+    
+    // test it out
+    display.clear(Rgb565::RED).unwrap();
 
     control.init(clm).await;
     control
