@@ -17,9 +17,6 @@ use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_rp::spi::{Config as SpiConfig, Spi};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use display_interface_spi::SPIInterface;
-use mipidsi::Builder;
-use mipidsi::Display;
 use embedded_graphics::{
     mono_font::{MonoTextStyle, MonoTextStyleBuilder, ascii::FONT_5X8},
     pixelcolor::BinaryColor,
@@ -28,6 +25,7 @@ use embedded_graphics::{
     text::Text,
 };
 use mipidsi::Builder;
+use mipidsi::Display;
 use mipidsi::models::ST7735s;
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
@@ -45,13 +43,20 @@ async fn cyw43_task(
     runner.run().await
 }
 
-async fn text(display: &mut impl DrawTarget<Color = Rgb565>, text: &str, x: i32, y: i32) -> Result<(), ()> {
-    let style = MonoTextStyle::new(&FONT_5X8, Rgb565::WHITE);
+async fn text(
+    text: &str,
+    x: i32,
+    y: i32,
+    r: u8,
+    g: u8,
+    b: u8,
+) -> Text<'_, MonoTextStyle<'_, Rgb565>> {
+    let style = MonoTextStyleBuilder::new()
+        .font(&FONT_5X8)
+        .text_color(Rgb565::WHITE)
+        .build();
+
     Text::new(text, Point::new(x, y), style)
-        .draw(display)
-        .map_err(|_| ())?;
-    
-    Ok(())
 }
 
 #[embassy_executor::main]
@@ -96,7 +101,7 @@ async fn main(spawner: Spawner) {
 
     let mut display_config = SpiConfig::default();
     display_config.frequency = 62_500_000; // 62.5 MHz
-    
+
     let spi = Spi::new(
         p.SPI0,
         p.PIN_18, // SCK
@@ -128,16 +133,18 @@ async fn main(spawner: Spawner) {
         .set_power_management(cyw43::PowerManagementMode::PowerSave)
         .await;
 
-    loop {
-        if w.is_high() {
-            info!("led on!");
-            control.gpio_set(0, true).await;
-            display.clear(Rgb565::RED).unwrap();
-        } else {
-            info!("led off!");
-            control.gpio_set(0, false).await;
-            display.clear(Rgb565::BLACK).unwrap();
-            text("led on!", 10, 10).await;
-        }
-    }
+    text("led on!", 10, 10, 255, 255, 255).await;
+
+    // loop {
+    //     if w.is_high() {
+    //         info!("led on!");
+    //         control.gpio_set(0, true).await;
+    //         display.clear(Rgb565::RED).unwrap();
+    //     } else {
+    //         info!("led off!");
+    //         control.gpio_set(0, false).await;
+    //         display.clear(Rgb565::BLACK).unwrap();
+    //         text("led on!", 10, 10, 255, 255, 255).await;
+    //     }
+    // }
 }
